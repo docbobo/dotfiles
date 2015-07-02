@@ -1,8 +1,8 @@
 #
-# A stripped-down sorin theme.
+# A stripped-down docbobo theme.
 #
 # Authors:
-#   Sorin Ionescu <sorin.ionescu@gmail.com>
+#   docbobo Ionescu <docbobo.ionescu@gmail.com>
 #   Josh Symonds <josh@joshsymonds.com>
 #   Boris Pruessmann <boris@pruessmann.org>
 #
@@ -20,8 +20,38 @@ function prompt_docbobo_pwd {
     _prompt_docbobo_pwd="$MATCH"
     unset MATCH
   else
-    _prompt_docbobo_pwd="${${${(@j:/:M)${(@s:/:)pwd}##.#?}:h}%/}/${pwd:t}"
+#    _prompt_docbobo_pwd="${${${(@j:/:M)${(@s:/:)pwd}##.#?}:h}%/}/${pwd:t}"
+    _prompt_docbobo_pwd="${${${${(@j:/:M)${(@s:/:)pwd}##.#?}:h}%/}//\%/%%}/${${pwd:t}//\%/%%}"
   fi
+}
+
+function prompt_docbobo_git_info {
+  if (( _prompt_docbobo_precmd_async_pid > 0 )); then
+    # Append Git status.
+    if [[ -s "$_prompt_docbobo_precmd_async_data" ]]; then
+      alias typeset='typeset -g'
+      source "$_prompt_docbobo_precmd_async_data"
+      RPROMPT+='${git_info:+${(e)git_info[status]}}'
+      unalias typeset
+    fi
+
+    # Reset PID.
+    _prompt_docbobo_precmd_async_pid=0
+
+    # Redisplay prompt.
+    zle && zle reset-prompt
+  fi
+}
+
+function prompt_docbobo_precmd_async {
+  # Get Git repository information.
+  if (( $+functions[git-info] )); then
+    git-info
+    typeset -p git_info >! "$_prompt_docbobo_precmd_async_data"
+  fi
+
+  # Signal completion to parent process.
+  kill -WINCH $$
 }
  
 function prompt_docbobo_precmd {
@@ -30,22 +60,27 @@ function prompt_docbobo_precmd {
  
   # Format PWD.
   prompt_docbobo_pwd
+
+  RPROMPT='${editor_info[overwrite]}${VIM:+" %B%F{green}V%f%b"}'
  
-  # Get Git repository information.
-  if (( $+functions[git-info] )); then
-    git-info
+  # Kill the old process of slow commands if it is still running.
+  if (( _prompt_docbobo_precmd_async_pid > 0 )); then
+    kill -KILL "$_prompt_docbobo_precmd_async_pid" &>/dev/null
   fi
- 
-  # Get ruby information
-  if (( $+functions[ruby-info] )); then
-    ruby-info
-  fi
+
+  # Compute slow commands in the background.
+  trap prompt_docbobo_git_info WINCH
+  prompt_docbobo_precmd_async &!
+  _prompt_docbobo_precmd_async_pid=$!
 }
  
 function prompt_docbobo_setup {
   setopt LOCAL_OPTIONS
   unsetopt XTRACE KSH_ARRAYS
   prompt_opts=(cr percent subst)
+
+  _prompt_docbobo_precmd_async_pid=0
+  _prompt_docbobo_precmd_async_data="${TMPPREFIX}-prompt_docbobo_data"
  
   # Load required functions.
   autoload -Uz add-zsh-hook
@@ -75,16 +110,39 @@ function prompt_docbobo_setup {
   zstyle ':prezto:module:git:info:unmerged' format ' %%B%F{yellow}═%f%%b'
   zstyle ':prezto:module:git:info:untracked' format ' %%B%F{white}◼%f%%b'
   zstyle ':prezto:module:git:info:keys' format \
+    'status' '$(coalesce "%b" "%p" "%c")%s%A%B%S%a%d%m%r%U%u' \
     'prompt' ' $(coalesce "%b" "%p" "%c")%s' \
     'rprompt' '%A%B%S%a%d%m%r%U%u %b'
  
   # Define prompts.
-  PROMPT='%F{gray}-%F{white}=[%n %F{grey}(%*)%F{white} %F{red}${_prompt_docbobo_pwd}%F{white}]=%F{grey}- % $f'
-  RPROMPT='${editor_info[overwrite]}${VIM:+" %B%F{green}V%f%b"}${git_info[rprompt]}'
+  if [ "$TMUX" != "" ]; then
+    PROMPT='%F{gray}-%F{white}=[%n %F{red}${_prompt_docbobo_pwd}%F{white}]=%F{grey}- % $f'
+  else
+    PROMPT='%F{gray}-%F{white}=[%n %F{grey}(%*)%F{white} %F{red}${_prompt_docbobo_pwd}%F{white}]=%F{grey}- % $f'
+  fi
   SPROMPT='zsh: correct %F{red}%R%f to %F{green}%r%f [nyae]? '
 }
 
-_prompt_and_resched() { sched +1 _prompt_and_resched; zle && zle reset-prompt }
+function prompt_docbobo_preview {
+  local +h PROMPT=''
+  local +h RPROMPT=''
+  local +h SPROMPT=''
+
+  editor-info 2>/dev/null
+  prompt_preview_theme 'docbobo'
+}
+
+_prompt_and_resched() {
+  if [ "$TMUX" != "" ]; then
+    return
+  fi
+
+  if [ "$WIDGET" != "expand-or-complete-with-indicator" ]; then
+    zle && zle reset-prompt 
+  fi
+
+  sched +1 _prompt_and_resched
+}
  
 prompt_docbobo_setup "$@"
 _prompt_and_resched

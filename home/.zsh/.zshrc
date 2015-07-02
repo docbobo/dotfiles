@@ -8,6 +8,7 @@ source $HOME/.homesick/repos/homeshick/homeshick.sh
 fpath=($HOME/.homesick/repos/homeshick/completions $fpath)
 
 unsetopt correct                                 # disable auto correct
+setopt TRANSIENT_RPROMPT
 
 # Fix locale to english
 export LC_CTYPE=en_US.UTF-8
@@ -27,6 +28,12 @@ alias mdfind='mdfind -onlyin .'
 # Golang
 export GOPATH=/src/gocode
 export PATH="$PATH:$GOPATH/bin"
+
+foreground-vi() {
+  fg %vi
+}
+zle -N foreground-vi
+bindkey '^Z' foreground-vi
 
 # Who doesn't want home and end to work?
 bindkey '\e[1~' beginning-of-line
