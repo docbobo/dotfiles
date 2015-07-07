@@ -22,7 +22,8 @@ alias cls=clear
 alias grep='grep --color=auto'
 alias more='/usr/share/vim/vim73/macros/less.sh'
 alias mdfind='mdfind -onlyin .'
-
+alias mc='MC_SKIN=$HOME/.config/mc/solarized.ini mc'
+alias notes='vim -c RecentNotes'
 # export LESS=' -R'                                # syntax highlighting for less
 
 # Golang
@@ -38,3 +39,16 @@ bindkey '^Z' foreground-vi
 # Who doesn't want home and end to work?
 bindkey '\e[1~' beginning-of-line
 bindkey '\e[4~' end-of-line
+
+# Docker Settings
+export DOCKER_CERT_PATH=/Users/bpruessm/.boot2docker/certs/boot2docker-vm
+export DOCKER_TLS_VERIFY=1
+export DOCKER_HOST=tcp://192.168.59.103:2376
+
+function start-redis() {
+    docker run -v /src/docker/redis:/data -p 6379:6379 --name redis -d redis redis-server --appendonly yes 
+}
+
+function setWindowTitle() {
+    echo '\033k' $* '\033\\'
+}
