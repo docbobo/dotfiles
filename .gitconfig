@@ -1,0 +1,24 @@
+# This is Git's per-user configuration file.
+[user]
+    user = Boris Pruessmann
+	email = boris@pruessmann.org
+
+[color]
+    branch = auto
+    diff = auto
+    grep = auto
+    showbranch = auto
+    status = auto
+    ui = auto
+
+[push]
+	default = current
+
+[alias]
+	lg = log --oneline --decorate --graph --all
+    diffc = diff --cached
+    ss = status -s -b
+
+[mergetool]
+    prompt = false
+	keepBackup = false
